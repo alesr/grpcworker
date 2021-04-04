@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/voi-oss/svc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -22,18 +23,24 @@ func WithStreamInterceptor(interceptor grpc.StreamServerInterceptor) Option {
 	}
 }
 
+var _ svc.Worker = (*Worker)(nil)
+
 type Worker struct {
 	logger             *zap.Logger
 	listener           net.Listener
 	server             *grpc.Server
+	serviceDesc        *grpc.ServiceDesc
+	app                interface{}
 	unaryInterceptors  []grpc.UnaryServerInterceptor
 	streamInterceptors []grpc.StreamServerInterceptor
 }
 
-func New(logger *zap.Logger, listener net.Listener, serviceDescription *grpc.ServiceDesc, service interface{}, opts ...Option) *Worker {
+func New(logger *zap.Logger, lis net.Listener, app interface{}, serviceDesc *grpc.ServiceDesc, opts ...Option) *Worker {
 	w := &Worker{
-		logger:   logger,
-		listener: listener,
+		logger:      logger,
+		listener:    lis,
+		app:         app,
+		serviceDesc: serviceDesc,
 	}
 
 	for _, opt := range opts {
@@ -44,14 +51,12 @@ func New(logger *zap.Logger, listener net.Listener, serviceDescription *grpc.Ser
 		grpc.ChainUnaryInterceptor(w.unaryInterceptors...),
 		grpc.ChainStreamInterceptor(w.streamInterceptors...),
 	)
-
-	w.server.RegisterService(serviceDescription, service)
 	return w
 }
 
 func (w *Worker) Init(*zap.Logger) error {
 	w.logger.Named("grpc_worker")
-
+	w.server.RegisterService(w.serviceDesc, w.app)
 	return nil
 }
 
