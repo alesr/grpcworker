@@ -50,7 +50,7 @@ func New(logger *zap.Logger, listener net.Listener, serviceDescription *grpc.Ser
 }
 
 func (w *Worker) Init(*zap.Logger) error {
-	w.logger.Named("grpc_server")
+	w.logger.Named("grpc_worker")
 
 	return nil
 }
@@ -63,7 +63,6 @@ func (w *Worker) Terminate() error {
 
 func (w *Worker) Run() error {
 	w.logger.Info("staring grpc server", zap.String("address", w.listener.Addr().String()))
-
 	if err := w.server.Serve(w.listener); err != nil {
 		return fmt.Errorf("could not serve grpc server: %s", err)
 	}
