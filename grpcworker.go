@@ -9,6 +9,8 @@ import (
 	"google.golang.org/grpc"
 )
 
+var _ svc.Worker = (*Worker)(nil)
+
 type Option func(w *Worker)
 
 func WithUnaryInterceptor(interceptor grpc.UnaryServerInterceptor) Option {
@@ -23,19 +25,18 @@ func WithStreamInterceptor(interceptor grpc.StreamServerInterceptor) Option {
 	}
 }
 
-var _ svc.Worker = (*Worker)(nil)
-
 type Worker struct {
 	logger             *zap.Logger
 	listener           net.Listener
 	server             *grpc.Server
 	serviceDesc        *grpc.ServiceDesc
-	app                interface{}
+	app                any
 	unaryInterceptors  []grpc.UnaryServerInterceptor
 	streamInterceptors []grpc.StreamServerInterceptor
 }
 
-func New(logger *zap.Logger, lis net.Listener, app interface{}, serviceDesc *grpc.ServiceDesc, opts ...Option) *Worker {
+// New creates a new instance of the Worker.
+func New(logger *zap.Logger, lis net.Listener, app any, serviceDesc *grpc.ServiceDesc, opts ...Option) *Worker {
 	w := &Worker{
 		logger:      logger,
 		listener:    lis,
@@ -54,22 +55,26 @@ func New(logger *zap.Logger, lis net.Listener, app interface{}, serviceDesc *grp
 	return w
 }
 
-func (w *Worker) Init(*zap.Logger) error {
+// Init initializes the worker.
+func (w *Worker) Init(logger *zap.Logger) error {
 	w.logger.Named("grpc_worker")
 	w.server.RegisterService(w.serviceDesc, w.app)
 	return nil
 }
 
-func (w *Worker) Terminate() error {
-	w.logger.Info("terminating grpc server")
-	w.server.GracefulStop()
+// Run starts the gRPC server.
+func (w *Worker) Run() error {
+	w.logger.Info("starting grpc server", zap.String("address", w.listener.Addr().String()))
+	if err := w.server.Serve(w.listener); err != nil {
+		w.logger.Error("failed to serve grpc server", zap.Error(err))
+		return fmt.Errorf("could not serve grpc server: %w", err)
+	}
 	return nil
 }
 
-func (w *Worker) Run() error {
-	w.logger.Info("staring grpc server", zap.String("address", w.listener.Addr().String()))
-	if err := w.server.Serve(w.listener); err != nil {
-		return fmt.Errorf("could not serve grpc server: %s", err)
-	}
+// Terminate stops the gRPC server gracefully.
+func (w *Worker) Terminate() error {
+	w.logger.Info("terminating grpc server")
+	w.server.GracefulStop()
 	return nil
 }
