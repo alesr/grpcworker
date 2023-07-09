@@ -1,4 +1,4 @@
-#gRPC Worker
+# gRPCWorker
 
 The grpcworker package provides a worker implementation for running a gRPC server with unary and stream interceptors. It is designed to be flexible and customizable through the use of options.
 
