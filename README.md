@@ -23,19 +23,13 @@ type MyApp struct{}
 // Implement methods of your gRPC service interface
 
 func main() {
-    // Create a logger
-    logger, _ := zap.NewDevelopment()
-    
-    // Create a listener on a specific address and port
-    lis, _ := net.Listen("tcp", ":50051")
-
     // Create your application instance
     app := MyApp{}
 
     // Create a gRPC service descriptor
     serviceDesc := grpc.ServiceDesc{
         ServiceName: "service-name",
-        HandlerType: (*MyApp)(nil),
+        HandlerType: (*MyApp)(nil), 
     }
 
     // Create your unary interceptor
@@ -53,6 +47,9 @@ func main() {
         // Do something after handling the request
         return nil
     }
+
+    logger, _ := zap.NewDevelopment()
+    lis, _ := net.Listen("tcp", ":50051")
 
     // Create a new worker with optional interceptors
     worker := grpcworker.New(logger, lis, &app, &serviceDesc,
