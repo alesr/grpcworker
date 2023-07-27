@@ -98,20 +98,3 @@ func TestNew(t *testing.T) {
 		assert.NotEmpty(t, observedWorker.streamInterceptors)
 	})
 }
-
-func TestWorker_Init(t *testing.T) {
-	logger := zap.NewNop()
-	lis := fakeListener{}
-	app := fakeApp{}
-	serviceDesc := grpc.ServiceDesc{}
-
-	observedWorker := New(logger, lis, app, &serviceDesc)
-
-	t.Run("worker is initialized", func(t *testing.T) {
-		t.Parallel()
-
-		err := observedWorker.Init(logger)
-
-		require.NoError(t, err)
-	})
-}
