@@ -1,0 +1,46 @@
+on:
+  # Run tests on PRs to master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  linter:
+    name: linter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: go fmt
+        run: gofmt -s -d .
+        
+      - name: go vet
+        run: go vet -c=10 -json ./...
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    name: unit-tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      # Set up Go
+      - name: setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.20'
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      
+      - name: unit tests
+        run: go test -v -race -vet=all -count=1 -timeout 60s -cover ./...
